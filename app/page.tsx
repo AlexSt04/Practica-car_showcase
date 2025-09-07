@@ -4,13 +4,27 @@ import { fuels, yearsOfProduction } from "@constants";
 import { CarCard, ShowMore, SearchBar, CustomFilter, Hero } from "@components";
 
 export default async function Home({ searchParams }: HomeProps) {
-  const allCars = await fetchCars({
+  // Normalize values from searchParams (they may be strings or undefined)
+  const year = searchParams.year ? Number(searchParams.year) : 2022;
+  const limitForUI = searchParams.limit ? Number(searchParams.limit) : 10; // default for pagination UI only
+
+  // Build filters but only include `limit` and `year` when explicitly provided to avoid over-filtering or premium params
+  const filters: Record<string, any> = {
     manufacturer: searchParams.manufacturer || "",
-    year: searchParams.year || 2022,
     fuel: searchParams.fuel || "",
-    limit: searchParams.limit || 10,
     model: searchParams.model || "",
-  });
+  };
+
+  // Only include year in the API call if the user set it (avoid defaulting to 2022 which narrows results)
+  if (searchParams.year) {
+    filters.year = Number(searchParams.year);
+  }
+
+  if (searchParams.limit) {
+    filters.limit = Number(searchParams.limit);
+  }
+
+  const allCars = await fetchCars(filters);
 
   const isDataEmpty = !Array.isArray(allCars) || allCars.length < 1 || !allCars;
 
@@ -36,8 +50,8 @@ export default async function Home({ searchParams }: HomeProps) {
         {!isDataEmpty ? (
           <section>
             <div className='home__cars-wrapper'>
-              {allCars?.map((car) => (
-                <CarCard car={car} />
+              {allCars?.map((car: any) => (
+                <CarCard key={`${car.make}-${car.model}-${car.year}`} car={car} />
               ))}
             </div>
 
